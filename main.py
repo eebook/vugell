@@ -130,13 +130,15 @@ def main():
 # Will refactoring later
 
 if __name__ == '__main__':
-    # main()
+    main()
 
     from container import ImageContainer
     image_container = ImageContainer('/src/tmp')
-    image_container.add('http://test.jpg')
+    # image_container.add('http://test.jpg')
     image_container.add('http://www.ruanyifeng.com/blogimg/asset/2017/bg2017091801.jpg')
+    image_container.add('http://www.ruanyifeng.com/blogimg/asset/2017/bg2017091804.png')
 
     print(image_container.get_filename_list())
     print('save_path???{}'.format(image_container.save_path))
-    image_container.download('http://www.ruanyifeng.com/blogimg/asset/2017/bg2017091801.jpg')
+    # image_container.download('http://www.ruanyifeng.com/blogimg/asset/2017/bg2017091801.jpg')
+    # image_container.start_download()

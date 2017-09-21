@@ -4,7 +4,7 @@
 import os
 import requests
 import shutil
-from utils import hex_md5, print_in_single_line
+from utils import hex_md5, print_in_single_line, Control
 
 
 class ImageContainer(object):
@@ -50,9 +50,18 @@ class ImageContainer(object):
         if os.path.isfile(self.save_path + '/' + filename):
             return
 
+        # TODO: query redis, if exist, download from minio
         print_in_single_line('Downloading picture: {}'.format(href))
         result = requests.get(href, stream=True)
         if result.status_code == 200:
             with open(self.save_path + '/' + filename, 'wb') as f:
                 result.raw.decode_content = True
                 shutil.copyfileobj(result.raw, f)
+                # TODO: upload to minio, write href:filename to redis
+
+    def start_download(self):
+        argv = {
+            'function': self.download,
+            'iterable': self.container,
+        }
+        Control.control_center(argv, self.container)
