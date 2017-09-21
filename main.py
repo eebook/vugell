@@ -9,7 +9,8 @@ from minio import Minio
 from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
                          BucketAlreadyExists)
 
-from style import STYLE
+from style.style import STYLE
+from plugins.picture import PicturePlugin
 
 _index = os.getenv('ES_INDEX', 'rss')
 _type = os.getenv('ES_TYPE', 'http://www.ruanyifeng.com/blog/atom.xml')
@@ -30,13 +31,13 @@ def get_metadata():
 
 def main():
     metadata = get_metadata()
-    print('metadata: {}'.format(metadata))
+    print('Building the book, got metadata: {}'.format(metadata))
 
     book = epub.EpubBook()
 
     # add metadata
     unique_id = uuid.uuid4()
-    print('unique_id: {}'.format(str(unique_id)))
+    print('Book identifier id: {}'.format(str(unique_id)))
     book.set_identifier(str(unique_id))
     book.set_title(metadata['_source']['title'])
     book.set_language('zh')
@@ -77,6 +78,7 @@ def main():
     for item in content:
         chapter = epub.EpubHtml(title=item['_source']['title'], file_name=item['_source']['title']+'.xhtml')
         chapter.content = item['_source']['content']
+        print('Add chapter: {}'.format(item['_source']['title']))
         section.append(chapter)
         book_spine.append(chapter)
         book.add_item(chapter)
@@ -100,30 +102,41 @@ def main():
     # create spine
     book.spine = book_spine
 
+    # epub options
+    opts = {'plugins': [PicturePlugin()]}
+
     # create epub file
     epub_name = 'ee-bookorg-' + metadata['_source']['title'] + '.epub'
     file_path = '/src/' + epub_name
-    epub.write_epub('/src/' + epub_name, book, {})
+    epub.write_epub('/src/' + epub_name, book, opts)
 
     # Make a bucket with the make_bucket API call.
     try:
-       minioClient.make_bucket("books", location="us-east-1")
+        minioClient.make_bucket("books", location="us-east-1")
     except BucketAlreadyOwnedByYou as err:
-       pass
+        pass
     except BucketAlreadyExists as err:
-       pass
+        pass
     except ResponseError as err:
-       raise
+        raise
     else:
         # Put an object 'pumaserver_debug.log' with contents from 'pumaserver_debug.log'.
         try:
-               minioClient.fput_object('books', epub_name, file_path)
+            minioClient.fput_object('books', epub_name, file_path)
         except ResponseError as err:
-               print(err)
-
+            print(err)
 
 
 # Will refactoring later
 
 if __name__ == '__main__':
-    main()
+    # main()
+
+    from container import ImageContainer
+    image_container = ImageContainer('/src/tmp')
+    image_container.add('http://test.jpg')
+    image_container.add('http://www.ruanyifeng.com/blogimg/asset/2017/bg2017091801.jpg')
+
+    print(image_container.get_filename_list())
+    print('save_path???{}'.format(image_container.save_path))
+    image_container.download('http://www.ruanyifeng.com/blogimg/asset/2017/bg2017091801.jpg')

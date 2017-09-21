@@ -1,4 +1,3 @@
-
 # TODO, get style from a server
 
 STYLE = '''

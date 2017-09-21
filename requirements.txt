@@ -1,3 +1,4 @@
 elasticsearch
 ebooklib
 minio
+requests
