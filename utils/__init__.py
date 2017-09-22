@@ -2,10 +2,25 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import os
 import hashlib
 import requests
+import redis
 
 from eventlet.greenpool import GreenPool
+from minio import Minio
+from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
+                         BucketAlreadyExists)
+S3_API_PROTOCAL = os.getenv('S3_API_PROTOCAL', 'http')
+S3_API_ENDPOINT = os.getenv('S3_API_ENDPOINT', '192.168.199.121:9000')
+S3_SECRET_KEY = os.getenv('S3_SECRET_KEY', 'gYRY3qyw5w12a6oHNZLVhIzm1ARGjT2Zx6piMWQq')
+S3_ACCESS_KEY = os.getenv('S3_ACCESS_KEY', 'US2TMDXZEEBVOZCKRVQ2')
+REDIS_HOST = os.getenv('REDIS_HOST', '192.168.199.121')
+REDIS_PORT = os.getenv('REDIS_PORT', 6379)
+minio_client = Minio(S3_API_ENDPOINT, access_key=S3_ACCESS_KEY,
+                    secret_key=S3_SECRET_KEY, secure=False)
+redis_client = redis.Redis(REDIS_HOST, REDIS_PORT)
+
 
 debug = False
 
@@ -57,3 +72,30 @@ class Control(object):
             print('Something happend...{}'.format(e))
             pass
         return
+
+
+def make_bucket(bucket):
+    try:
+        minio_client.make_bucket(bucket,)
+    except BucketAlreadyOwnedByYou as err:
+        print('BucketAlreadyOwnedByYou')
+    except BucketAlreadyExists as err:
+        print('Bucket already exist')
+    except ResponseError as err:
+        raise
+
+
+def put_file(bucket, filename, file_path):
+    try:
+        minio_client.fput_object(bucket, filename, file_path)
+        print('Filename: {} (Bucket: {}) has been successfully uploaded\n'.format(filename, bucket))
+    except ResponseError as err:
+        print(err)
+
+
+def get_file(bucket, filename, file_path):
+    try:
+        minio_client.fget_object(bucket, filename, file_path)
+        print('Filename: {} (Bucket: {}) has been successfully downloaded\n'.format(filename, bucket))
+    except ResponseError as err:
+        print(err)

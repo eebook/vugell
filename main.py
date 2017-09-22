@@ -5,24 +5,17 @@ import os
 import uuid
 from ebooklib import epub
 from elasticsearch import Elasticsearch
-from minio import Minio
-from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
-                         BucketAlreadyExists)
 
 from style.style import STYLE
 from plugins.picture import PicturePlugin
+from utils import make_bucket, put_file
 
 _index = os.getenv('ES_INDEX', 'rss')
 _type = os.getenv('ES_TYPE', 'http://www.ruanyifeng.com/blog/atom.xml')
 _id = os.getenv('ES_ID', '2017-09-20')
 ESHOSTPORT = os.getenv('ESHOSTPORT', 'http://192.168.199.121:9200')
-S3_API_PROTOCAL = os.getenv('S3_API_PROTOCAL', 'http')
-S3_API_ENDPOINT = os.getenv('S3_API_ENDPOINT', '192.168.199.121:9000')
-S3_SECRET_KEY = os.getenv('S3_SECRET_KEY', 'A4gkNz9x494EI+OUttx9UTta1ymkzHR0ZhBCZ1B1')
-S3_ACCESS_KEY = os.getenv('S3_ACCESS_KEY', '60TC9MKTRD8A8U3U7686')
 
 es = Elasticsearch([ESHOSTPORT])
-minioClient = Minio(S3_API_ENDPOINT, access_key=S3_ACCESS_KEY, secret_key=S3_SECRET_KEY, secure=False)
 
 
 def get_metadata():
@@ -30,6 +23,7 @@ def get_metadata():
 
 
 def main():
+    make_bucket('images')
     metadata = get_metadata()
     print('Building the book, got metadata: {}'.format(metadata))
 
@@ -111,34 +105,13 @@ def main():
     epub.write_epub('/src/' + epub_name, book, opts)
 
     # Make a bucket with the make_bucket API call.
-    try:
-        minioClient.make_bucket("books", location="us-east-1")
-    except BucketAlreadyOwnedByYou as err:
-        pass
-    except BucketAlreadyExists as err:
-        pass
-    except ResponseError as err:
-        raise
-    else:
+    make_bucket('books')
+    # else:
         # Put an object 'pumaserver_debug.log' with contents from 'pumaserver_debug.log'.
-        try:
-            minioClient.fput_object('books', epub_name, file_path)
-        except ResponseError as err:
-            print(err)
+    put_file('books', epub_name, file_path)
 
 
 # Will refactoring later
 
 if __name__ == '__main__':
     main()
-
-    from container import ImageContainer
-    image_container = ImageContainer('/src/tmp')
-    # image_container.add('http://test.jpg')
-    image_container.add('http://www.ruanyifeng.com/blogimg/asset/2017/bg2017091801.jpg')
-    image_container.add('http://www.ruanyifeng.com/blogimg/asset/2017/bg2017091804.png')
-
-    print(image_container.get_filename_list())
-    print('save_path???{}'.format(image_container.save_path))
-    # image_container.download('http://www.ruanyifeng.com/blogimg/asset/2017/bg2017091801.jpg')
-    # image_container.start_download()

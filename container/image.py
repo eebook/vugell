@@ -4,7 +4,9 @@
 import os
 import requests
 import shutil
-from utils import hex_md5, print_in_single_line, Control
+
+from ebooklib import epub
+from utils import hex_md5, print_in_single_line, Control, put_file, redis_client, get_file
 
 
 class ImageContainer(object):
@@ -51,13 +53,24 @@ class ImageContainer(object):
             return
 
         # TODO: query redis, if exist, download from minio
-        print_in_single_line('Downloading picture: {}'.format(href))
-        result = requests.get(href, stream=True)
-        if result.status_code == 200:
-            with open(self.save_path + '/' + filename, 'wb') as f:
-                result.raw.decode_content = True
-                shutil.copyfileobj(result.raw, f)
-                # TODO: upload to minio, write href:filename to redis
+        redis_cache = redis_client.get(href)
+        file_path = self.save_path + '/' + filename
+        if redis_cache:
+            print('Got cache of {}, filename: {}'.format(href, filename))
+            print('Download from minio...')
+            get_file('images', filename, file_path)
+        else:
+            print('No cache! Downloading picture: {}'.format(href))
+
+            result = requests.get(href, stream=True)
+            if result.status_code == 200:
+                with open(file_path, 'wb') as f:
+                    result.raw.decode_content = True
+                    shutil.copyfileobj(result.raw, f)
+                    put_file('images', filename, file_path)
+                    redis_client.set(href, filename)
+            else:
+                print('Ops, Got error downloading {}'.format(href))
 
     def start_download(self):
         argv = {

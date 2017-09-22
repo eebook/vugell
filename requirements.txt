@@ -4,3 +4,4 @@ minio
 requests
 # greenlet
 eventlet
+redis
