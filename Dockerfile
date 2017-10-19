@@ -14,3 +14,5 @@ RUN pip3 install -U pip \
     && pip install -i https://pypi.douban.com/simple -r /src/requirements.txt
 
 WORKDIR /src
+
+CMD ["python", "/src/main.py"]

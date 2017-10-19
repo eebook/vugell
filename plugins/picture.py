@@ -17,15 +17,17 @@ class PicturePlugin(BasePlugin):
         image_container = ImageContainer('/src/tmp')
         tree = html.document_fromstring(str(chapter.content), parser=utf8_parser)
         root = tree.getroottree()
+        if len(root.find('body')) == 0:
+            print('Ops, no body in this chapter, chapter content: {}'.format(chapter.content))
+            return
 
-        if len(root.find('body')) != 0:
-            body = tree.find('body')
+        body = tree.find('body')
 
-            for _pic_link in body.xpath("//img"):
-                href = str(_pic_link.get('src'))
-                if href.startswith('http'):
-                    image_container.add(href)
-                    _pic_link.set('src', './src/tmp/'+image_container.container[href])
+        for _pic_link in body.xpath("//img"):
+            href = str(_pic_link.get('src'))
+            if href.startswith('http'):
+                image_container.add(href)
+                _pic_link.set('src', './src/tmp/'+image_container.container[href])
 
         image_container.start_download()
         filename_list = image_container.get_filename_list()

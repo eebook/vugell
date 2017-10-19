@@ -6,21 +6,26 @@ import os
 import hashlib
 import requests
 import redis
+from datetime import timedelta
 
 from eventlet.greenpool import GreenPool
 from minio import Minio
 from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
                          BucketAlreadyExists)
+from elasticsearch import Elasticsearch
+
 S3_API_PROTOCAL = os.getenv('S3_API_PROTOCAL', 'http')
-S3_API_ENDPOINT = os.getenv('S3_API_ENDPOINT', '192.168.199.121:9000')
-S3_SECRET_KEY = os.getenv('S3_SECRET_KEY', 'gYRY3qyw5w12a6oHNZLVhIzm1ARGjT2Zx6piMWQq')
-S3_ACCESS_KEY = os.getenv('S3_ACCESS_KEY', 'US2TMDXZEEBVOZCKRVQ2')
+S3_API_ENDPOINT = os.getenv('S3_API_ENDPOINT', '192.168.199.121:19000')
+S3_SECRET_KEY = os.getenv('S3_SECRET_KEY', 'zUU0pffZ2Kv6E4eNMs8mz5TrN2H+kNcBFhuxS7Be')
+S3_ACCESS_KEY = os.getenv('S3_ACCESS_KEY', 'DFEEHK4IPJQAXDW8M7A9')
 REDIS_HOST = os.getenv('REDIS_HOST', '192.168.199.121')
 REDIS_PORT = os.getenv('REDIS_PORT', 6379)
 minio_client = Minio(S3_API_ENDPOINT, access_key=S3_ACCESS_KEY,
                     secret_key=S3_SECRET_KEY, secure=False)
 redis_client = redis.Redis(REDIS_HOST, REDIS_PORT)
 
+ESHOSTPORT = os.getenv('ESHOSTPORT', 'http://192.168.199.121:9200')
+es = Elasticsearch([ESHOSTPORT])
 
 debug = False
 
@@ -99,3 +104,26 @@ def get_file(bucket, filename, file_path):
         print('Filename: {} (Bucket: {}) has been successfully downloaded\n'.format(filename, bucket))
     except ResponseError as err:
         print(err)
+
+
+def presigned_get_object(bucket, filename, expire_days, content_string):
+    try:
+        return minio_client.presigned_get_object(bucket,
+                                                 filename,
+                                                 expires=timedelta(days=expire_days),
+                                                 response_headers={
+                                                     'Content-Disposition': content_string,
+                                                     'response-content-type': 'application/octet- stream'
+                                                 })
+    except ResponseError as err:
+        print(err)
+
+
+def get_metadata(_id):
+    return es.get(index='eebook', doc_type='metadata', id=_id)
+
+
+def put_book_info(book_id, body):
+    es.create(index='eebook', doc_type='book', id=book_id, body=body)
+    print('Successfully send book information to ee-book, book_id: {}, name: {}'.format(
+        book_id, body['name']))

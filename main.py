@@ -4,35 +4,28 @@
 import os
 import uuid
 from ebooklib import epub
-from elasticsearch import Elasticsearch
 
 from style.style import STYLE
 from plugins.picture import PicturePlugin
-from utils import make_bucket, put_file
+from utils import make_bucket, put_file, get_metadata, es, put_book_info, presigned_get_object
 
 _index = os.getenv('ES_INDEX', 'rss')
 _type = os.getenv('ES_TYPE', 'http://www.ruanyifeng.com/blog/atom.xml')
-_id = os.getenv('ES_ID', '2017-09-20')
-ESHOSTPORT = os.getenv('ESHOSTPORT', 'http://192.168.199.121:9200')
-
-es = Elasticsearch([ESHOSTPORT])
-
-
-def get_metadata():
-    return es.get(index='eebook', doc_type='metadata', id='http://www.ruanyifeng.com/blog/atom.xml')
-
+_id = os.getenv('ES_ID', '2017-09-24')
+created_by = os.getenv('CREATED_BY', 'knarfeh')
+eebook_url = os.getenv('EEBOOK_URL', 'http://www.ruanyifeng.com/blog/atom.xml')
 
 def main():
     make_bucket('images')
-    metadata = get_metadata()
+    metadata = get_metadata(_id=eebook_url)
     print('Building the book, got metadata: {}'.format(metadata))
 
     book = epub.EpubBook()
 
     # add metadata
-    unique_id = uuid.uuid4()
-    print('Book identifier id: {}'.format(str(unique_id)))
-    book.set_identifier(str(unique_id))
+    book_uuid = uuid.uuid4()
+    print('Book identifier id: {}'.format(str(book_uuid)))
+    book.set_identifier(str(book_uuid))
     book.set_title(metadata['_source']['title'])
     book.set_language('zh')
     book.add_author('ee-book')
@@ -46,18 +39,9 @@ def main():
     c2.content = 'About this book'
 
     dsl_body = {
-        "query": {
-            "bool": {
-                "must": [
-                    {
-                        "terms": {
-                            "dayTimestamp": ["2017-09-20"]
-                        }
-                    }
-                ]
-            }
-        }
+        "query": metadata['_source']['query']
     }
+    print("dsl_body???{}".format(dsl_body))
 
     content_result = es.search(index=_index, doc_type=_type+':content', body=dsl_body)
     content = content_result['hits']['hits']
@@ -79,10 +63,10 @@ def main():
 
     # create table of contents
     book.toc = (epub.Link('intro.xhtml', 'Introduction', 'intro'),
-                 (epub.Section('Articles'),
-                  tuple(section)
-                 )
+                (epub.Section('Articles'),
+                 tuple(section)
                 )
+    )
     # add navigation files
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
@@ -100,7 +84,7 @@ def main():
     opts = {'plugins': [PicturePlugin()]}
 
     # create epub file
-    epub_name = 'ee-bookorg-' + metadata['_source']['title'] + '.epub'
+    epub_name = 'ee-bookorg-' + metadata['_source']['title'] + '-' + created_by + '.epub'
     file_path = '/src/' + epub_name
     epub.write_epub('/src/' + epub_name, book, opts)
 
@@ -109,6 +93,28 @@ def main():
     # else:
         # Put an object 'pumaserver_debug.log' with contents from 'pumaserver_debug.log'.
     put_file('books', epub_name, file_path)
+    content_string = 'attachment; filename="' + epub_name + '"'
+    download_url = presigned_get_object(bucket='books',
+                                        filename=epub_name,
+                                        expire_days=1,
+                                        content_string=content_string)
+
+    # TODO, send book metadata to es, include book_name, created_by, book_basic_info,
+    # TODO: update book href in each es doc, so we can search with book content
+    # Just copy github, project->book, code->book content
+    book_info_body = {
+        'uuid': book_uuid,
+        'name': epub_name,
+        # 'name': 'ee-bookorg-阮一峰的网络日志-rss-2017-10-04.epub',
+        'type': _index,
+        'tags': [_index, 'ruanyifeng'],
+        'created_by': created_by,
+        'created_time': 'create_time',
+        'updated_time': 'updated_time',
+        'eebook_url': eebook_url,
+        'download_url': download_url
+    }
+    put_book_info(book_id=book_uuid, body=book_info_body)
 
 
 # Will refactoring later
