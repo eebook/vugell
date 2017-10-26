@@ -3,6 +3,7 @@
 
 import sys
 import os
+import json
 import hashlib
 import requests
 import redis
@@ -20,12 +21,15 @@ S3_SECRET_KEY = os.getenv('S3_SECRET_KEY', 'zUU0pffZ2Kv6E4eNMs8mz5TrN2H+kNcBFhux
 S3_ACCESS_KEY = os.getenv('S3_ACCESS_KEY', 'DFEEHK4IPJQAXDW8M7A9')
 REDIS_HOST = os.getenv('REDIS_HOST', '192.168.199.121')
 REDIS_PORT = os.getenv('REDIS_PORT', 6379)
+redis_client = redis.Redis(REDIS_HOST, REDIS_PORT)
 minio_client = Minio(S3_API_ENDPOINT, access_key=S3_ACCESS_KEY,
                     secret_key=S3_SECRET_KEY, secure=False)
-redis_client = redis.Redis(REDIS_HOST, REDIS_PORT)
 
 ESHOSTPORT = os.getenv('ESHOSTPORT', 'http://192.168.199.121:9200')
 es = Elasticsearch([ESHOSTPORT])
+API_URL = os.getenv('GRYU_API_URL', 'http://192.168.199.121:18083')
+API_VERSION = os.getenv("API_VERSION", "v1")
+API_TOKEN = os.getenv('API_TOKEN')
 
 debug = False
 
@@ -123,7 +127,20 @@ def get_metadata(_id):
     return es.get(index='eebook', doc_type='metadata', id=_id)
 
 
-def put_book_info(book_id, body):
+def create_book_resource(_name, _id, _is_public=False):
+    url = "{}/{}/books/".format(API_URL, API_VERSION)
+    payload = {
+        "book_name": _name,
+        "uuid": _id,
+        "is_public": _is_public
+    }
+    headers = {
+        "Authorization": "Token " + API_TOKEN,
+        "content-type": "application/json"
+    }
+    r = requests.post(url, headers=headers, data=json.dumps(payload))
+    return r
+
+
+def put_book_info_2_es(book_id, body):
     es.create(index='eebook', doc_type='book', id=book_id, body=body)
-    print('Successfully send book information to ee-book, book_id: {}, name: {}'.format(
-        book_id, body['name']))

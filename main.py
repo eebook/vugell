@@ -7,13 +7,16 @@ from ebooklib import epub
 
 from style.style import STYLE
 from plugins.picture import PicturePlugin
-from utils import make_bucket, put_file, get_metadata, es, put_book_info, presigned_get_object
+from utils import (make_bucket, put_file, get_metadata, es,
+                   put_book_info_2_es, presigned_get_object, create_book_resource)
 
 _index = os.getenv('ES_INDEX', 'rss')
 _type = os.getenv('ES_TYPE', 'http://www.ruanyifeng.com/blog/atom.xml')
 _id = os.getenv('ES_ID', '2017-09-24')
 created_by = os.getenv('CREATED_BY', 'knarfeh')
+IS_PUBLIC = os.getenv('IS_PUBLIC')
 eebook_url = os.getenv('EEBOOK_URL', 'http://www.ruanyifeng.com/blog/atom.xml')
+
 
 def main():
     make_bucket('images')
@@ -114,7 +117,14 @@ def main():
         'eebook_url': eebook_url,
         'download_url': download_url
     }
-    put_book_info(book_id=book_uuid, body=book_info_body)
+    response = create_book_resource(epub_name, str(book_uuid), IS_PUBLIC)
+    if response.status_code != 201:
+        print("Got error...")
+        print("status code: {}, response: {}".format(response.status_code, response.text))
+        return
+    put_book_info_2_es(book_id=book_uuid, body=book_info_body)
+    print('Successfully send book information to ee-book, book_id: {}, name: {}'.format(
+        book_uuid, epub_name))
 
 
 # Will refactoring later
