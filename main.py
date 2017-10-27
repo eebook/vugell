@@ -7,20 +7,21 @@ from ebooklib import epub
 
 from style.style import STYLE
 from plugins.picture import PicturePlugin
-from utils import (make_bucket, put_file, get_metadata, es,
-                   put_book_info_2_es, presigned_get_object, create_book_resource)
+from utils import (make_bucket, put_file, get_metadata, es, put_book_info_2_es,
+                   presigned_get_object, create_book_resource, str2bool, md2html)
 
-_index = os.getenv('ES_INDEX', 'rss')
-_type = os.getenv('ES_TYPE', 'http://www.ruanyifeng.com/blog/atom.xml')
-_id = os.getenv('ES_ID', '2017-09-24')
-created_by = os.getenv('CREATED_BY', 'knarfeh')
-IS_PUBLIC = os.getenv('IS_PUBLIC')
-eebook_url = os.getenv('EEBOOK_URL', 'http://www.ruanyifeng.com/blog/atom.xml')
+_INDEX = os.getenv('ES_INDEX', 'rss')
+_TYPE = os.getenv('ES_TYPE', 'http://www.ruanyifeng.com/blog/atom.xml')
+_ID = os.getenv('ES_ID', '2017-09-24')
+CREATED_BY = os.getenv('CREATED_BY', 'knarfeh')
+EEBOOK_URL = os.getenv('EEBOOK_URL', 'http://www.ruanyifeng.com/blog/atom.xml')
+IS_PUBLIC = str2bool(os.getenv('IS_PUBLIC'))
+CONTENT_IS_MARKDOWN = str2bool(os.getenv('CONTENT_IS_MARKDOWN'))
 
 
 def main():
     make_bucket('images')
-    metadata = get_metadata(_id=eebook_url)
+    metadata = get_metadata(_id=EEBOOK_URL)
     print('Building the book, got metadata: {}'.format(metadata))
 
     book = epub.EpubBook()
@@ -37,7 +38,7 @@ def main():
     c1 = epub.EpubHtml(title='Introduction', file_name='intro.xhtml', lang='zh')
     c1.content = metadata['_source']['title']
 
-    # about chapter
+    # about chapter, TODO, get from _INDEX/_TYPE/
     c2 = epub.EpubHtml(title='About this book', file_name='about.xhtml')
     c2.content = 'About this book'
 
@@ -46,7 +47,7 @@ def main():
     }
     print("dsl_body???{}".format(dsl_body))
 
-    content_result = es.search(index=_index, doc_type=_type+':content', body=dsl_body)
+    content_result = es.search(index=_INDEX, doc_type=_TYPE+':content', body=dsl_body)
     content = content_result['hits']['hits']
 
     # add chapters to the book
@@ -58,7 +59,18 @@ def main():
 
     for item in content:
         chapter = epub.EpubHtml(title=item['_source']['title'], file_name=item['_source']['title']+'.xhtml')
-        chapter.content = item['_source']['content']
+        title_html = '<h1>' + item['_source']['title'] + '</h1>'
+        author_html = '<p>Author: ' + item['_source']['author'] + '</p>'
+        if isinstance(item['_source']['content'], list):
+            content = ''
+            for sub_item in item['_source']['content']:
+                sub_author = '<hr><p>Author: ' + sub_item['author'] + '</p>'
+                sub_content = sub_item['content']
+                content += (sub_author+sub_content)
+            chapter.content = title_html + content
+        else:
+            chapter.content =  title_html + author_html + item['_source']['content']
+        chapter.content = md2html(chapter.content, CONTENT_IS_MARKDOWN)
         print('Add chapter: {}'.format(item['_source']['title']))
         section.append(chapter)
         book_spine.append(chapter)
@@ -82,12 +94,11 @@ def main():
 
     # create spine
     book.spine = book_spine
-
     # epub options
     opts = {'plugins': [PicturePlugin()]}
 
     # create epub file
-    epub_name = 'ee-bookorg-' + metadata['_source']['title'] + '-' + created_by + '.epub'
+    epub_name = 'ee-bookorg-' + metadata['_source']['title'] + '-' + CREATED_BY + '.epub'
     file_path = '/src/' + epub_name
     epub.write_epub('/src/' + epub_name, book, opts)
 
@@ -108,13 +119,12 @@ def main():
     book_info_body = {
         'uuid': book_uuid,
         'name': epub_name,
-        # 'name': 'ee-bookorg-阮一峰的网络日志-rss-2017-10-04.epub',
-        'type': _index,
-        'tags': [_index, 'ruanyifeng'],
-        'created_by': created_by,
+        'type': _INDEX,
+        'tags': [_INDEX, 'ruanyifeng'],
+        'created_by': CREATED_BY,
         'created_time': 'create_time',
         'updated_time': 'updated_time',
-        'eebook_url': eebook_url,
+        'eebook_url': EEBOOK_URL,
         'download_url': download_url
     }
     response = create_book_resource(epub_name, str(book_uuid), IS_PUBLIC)

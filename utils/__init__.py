@@ -6,9 +6,10 @@ import os
 import json
 import hashlib
 import requests
-import redis
 from datetime import timedelta
 
+import redis
+from markdown2 import Markdown
 from eventlet.greenpool import GreenPool
 from minio import Minio
 from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
@@ -32,6 +33,17 @@ API_VERSION = os.getenv("API_VERSION", "v1")
 API_TOKEN = os.getenv('API_TOKEN')
 
 debug = False
+markdowner = Markdown()
+
+
+def md2html(_content, _convert):
+    if _convert is True:
+        print('markdown to html')
+        _content = markdowner.convert(_content)
+    return _content
+
+def str2bool(v):
+    return v and v.lower() in ("yes", "true", "t", "1")
 
 
 def hex_md5(content):

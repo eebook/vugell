@@ -5,3 +5,4 @@ requests
 # greenlet
 eventlet
 redis
+markdown2

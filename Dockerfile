@@ -11,7 +11,7 @@ RUN apk --update --no-cache add gcc g++ libxslt-dev python3-dev musl-dev make
 
 COPY . /src
 RUN pip3 install -U pip \
-    && pip install -i https://pypi.douban.com/simple -r /src/requirements.txt
+    && pip install -i https://pypi.douban.com/simple -r /src/requirements/dev.txt
 
 WORKDIR /src
 
