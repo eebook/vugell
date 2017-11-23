@@ -9,7 +9,7 @@ import requests
 from datetime import timedelta
 
 import redis
-from markdown2 import Markdown
+import mistune
 from eventlet.greenpool import GreenPool
 from minio import Minio
 from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
@@ -33,13 +33,13 @@ API_VERSION = os.getenv("API_VERSION", "v1")
 API_TOKEN = os.getenv('API_TOKEN')
 
 debug = False
-markdowner = Markdown()
+markdowner = mistune.Markdown()
 
 
 def md2html(_content, _convert):
     if _convert is True:
         print('markdown to html')
-        _content = markdowner.convert(_content)
+        _content = markdowner(_content)
     return _content
 
 def str2bool(v):
@@ -91,7 +91,6 @@ class Control(object):
                 pass
         except Exception as e:
             print('Something happend...{}'.format(e))
-            pass
         return
 
 

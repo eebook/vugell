@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
+import shutil
 from ebooklib import epub
 from ebooklib.plugins.base import BasePlugin
 from container import ImageContainer
@@ -32,10 +33,18 @@ class PicturePlugin(BasePlugin):
         image_container.start_download()
         filename_list = image_container.get_filename_list()
         for item in filename_list:
-            with open('/src/tmp/' + item, 'rb') as f:
+            try:
+                f = open('/src/tmp/' + item, 'rb')
+            except FileNotFoundError as e:
+                print('Handle pictures, Error: {}'.format(e))
+                print('Copy pic_error to {}'.format('/src/tmp/' + item))
+                shutil.copyfile('/src/assets/pic_error.png', '/src/tmp/' + item)
+                f = open('/src/tmp/' + item, 'rb')
+            finally:
                 image = epub.EpubImage()
                 image.file_name = '/src/tmp/' + item
                 image.content = f.read()
                 book.add_item(image)
+
 
         chapter.content = etree.tostring(tree, pretty_print=True, encoding='utf-8')

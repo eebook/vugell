@@ -5,4 +5,4 @@ requests
 # greenlet
 eventlet
 redis
-markdown2
+mistune

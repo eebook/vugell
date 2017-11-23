@@ -17,6 +17,7 @@ CREATED_BY = os.getenv('CREATED_BY', 'knarfeh')
 EEBOOK_URL = os.getenv('EEBOOK_URL', 'http://www.ruanyifeng.com/blog/atom.xml')
 IS_PUBLIC = str2bool(os.getenv('IS_PUBLIC'))
 CONTENT_IS_MARKDOWN = str2bool(os.getenv('CONTENT_IS_MARKDOWN'))
+CONTENT_SIZE = int(os.getenv('CONTENT_SIZE', 30))
 
 
 def main():
@@ -45,9 +46,11 @@ def main():
     dsl_body = {
         "query": metadata['_source']['query']
     }
+    # TODO: pretty print
     print("dsl_body???{}".format(dsl_body))
 
-    content_result = es.search(index=_INDEX, doc_type=_TYPE+':content', body=dsl_body)
+    # TODO: Separate by volumes
+    content_result = es.search(index=_INDEX, doc_type=_TYPE+':content', body=dsl_body, size=CONTENT_SIZE, from_=0)
     content = content_result['hits']['hits']
 
     # add chapters to the book
@@ -66,7 +69,7 @@ def main():
             for sub_item in item['_source']['content']:
                 sub_author = '<hr><p>Author: ' + sub_item['author'] + '</p>'
                 sub_content = sub_item['content']
-                content += (sub_author+sub_content)
+                content += (sub_author+str(sub_content))
             chapter.content = title_html + content
         else:
             chapter.content =  title_html + author_html + item['_source']['content']

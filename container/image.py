@@ -62,7 +62,11 @@ class ImageContainer(object):
         else:
             print('No cache! Downloading picture: {}'.format(href))
 
-            result = requests.get(href, stream=True)
+            try:
+                result = requests.get(href, stream=True)
+            except Exception as e:
+                print('Unknown exception: {}'.format(e))
+                return
             if result.status_code == 200:
                 with open(file_path, 'wb') as f:
                     result.raw.decode_content = True
