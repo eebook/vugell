@@ -25,9 +25,10 @@ REDIS_PORT = os.getenv('REDIS_PORT', 6379)
 redis_client = redis.Redis(REDIS_HOST, REDIS_PORT)
 minio_client = Minio(S3_API_ENDPOINT, access_key=S3_ACCESS_KEY,
                     secret_key=S3_SECRET_KEY, secure=False)
+print("WTF is s3 api???{}".format(S3_API_ENDPOINT))
 
-ESHOSTPORT = os.getenv('ESHOSTPORT', 'http://192.168.199.121:9200')
-es = Elasticsearch([ESHOSTPORT])
+ES_HOST_PORT = os.getenv('ES_HOST_PORT', 'http://192.168.199.121:9200')
+es = Elasticsearch([ES_HOST_PORT])
 API_URL = os.getenv('GRYU_API_URL', 'http://192.168.199.121:18083')
 API_VERSION = os.getenv("API_VERSION", "v1")
 API_TOKEN = os.getenv('API_TOKEN')

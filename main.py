@@ -11,13 +11,15 @@ from utils import (make_bucket, put_file, get_metadata, es, put_book_info_2_es,
                    presigned_get_object, create_book_resource, str2bool, md2html)
 
 _INDEX = os.getenv('ES_INDEX', 'rss')
-_TYPE = os.getenv('ES_TYPE', 'http://www.ruanyifeng.com/blog/atom.xml')
+_TYPE = os.getenv('URL', 'http://www.ruanyifeng.com/blog/atom.xml')
 _ID = os.getenv('ES_ID', '2017-09-24')
 CREATED_BY = os.getenv('CREATED_BY', 'knarfeh')
-EEBOOK_URL = os.getenv('EEBOOK_URL', 'http://www.ruanyifeng.com/blog/atom.xml')
+EEBOOK_URL = os.getenv('URL', 'http://www.ruanyifeng.com/blog/atom.xml')
 IS_PUBLIC = str2bool(os.getenv('IS_PUBLIC'))
 CONTENT_IS_MARKDOWN = str2bool(os.getenv('CONTENT_IS_MARKDOWN'))
 CONTENT_SIZE = int(os.getenv('CONTENT_SIZE', 30))
+
+EPUB_NAME_FOR_DEBUG = os.getenv('EPUB_NAME_FOR_DEBUG', None)
 
 
 def main():
@@ -101,7 +103,7 @@ def main():
     opts = {'plugins': [PicturePlugin()]}
 
     # create epub file
-    epub_name = 'ee-bookorg-' + metadata['_source']['title'] + '-' + CREATED_BY + '.epub'
+    epub_name = 'ee-bookorg-' + metadata['_source']['title'] + '-' + CREATED_BY + '.epub' if EPUB_NAME_FOR_DEBUG is None else EPUB_NAME_FOR_DEBUG
     file_path = '/src/' + epub_name
     epub.write_epub('/src/' + epub_name, book, opts)
 
@@ -120,14 +122,25 @@ def main():
     # TODO: update book href in each es doc, so we can search with book content
     # Just copy github, project->book, code->book content
     book_info_body = {
-        'uuid': book_uuid,
-        'name': epub_name,
-        'type': _INDEX,
-        'tags': [_INDEX, 'ruanyifeng'],
+        'id': book_uuid,
+        'title': epub_name,
+        'type': 'eebook',
+        'tags': [
+            {
+                'name': _INDEX,
+                'title': _INDEX,
+                'count': 1,
+            },
+            {
+                'name': 'yawnwoem',
+                'title': 'yawnwoem',
+                'count': 1,
+            },
+        ],
         'created_by': CREATED_BY,
-        'created_time': 'create_time',
+        'created_time': 'create_time',  # TODO
         'updated_time': 'updated_time',
-        'eebook_url': EEBOOK_URL,
+        'url': EEBOOK_URL,
         'download_url': download_url
     }
     response = create_book_resource(epub_name, str(book_uuid), IS_PUBLIC)
@@ -139,8 +152,6 @@ def main():
     print('Successfully send book information to ee-book, book_id: {}, name: {}'.format(
         book_uuid, epub_name))
 
-
-# Will refactoring later
 
 if __name__ == '__main__':
     main()

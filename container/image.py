@@ -72,7 +72,7 @@ class ImageContainer(object):
                     result.raw.decode_content = True
                     shutil.copyfileobj(result.raw, f)
                     put_file('images', filename, file_path)
-                    redis_client.set(href, filename)
+                    redis_client.set(href, filename, ex=86400*15)
             else:
                 print('Ops, Got error downloading {}'.format(href))
 
