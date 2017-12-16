@@ -57,11 +57,10 @@ class ImageContainer(object):
         file_path = self.save_path + '/' + filename
         if redis_cache:
             print('Got cache of {}, filename: {}'.format(href, filename))
-            print('Download from minio...')
-            get_file('images', filename, file_path)
+            print('Download from s3...')
+            get_file('eebook', redis_cache, file_path)
         else:
             print('No cache! Downloading picture: {}'.format(href))
-
             try:
                 result = requests.get(href, stream=True)
             except Exception as e:
@@ -71,8 +70,9 @@ class ImageContainer(object):
                 with open(file_path, 'wb') as f:
                     result.raw.decode_content = True
                     shutil.copyfileobj(result.raw, f)
-                    put_file('images', filename, file_path)
-                    redis_client.set(href, filename, ex=86400*15)
+                    print("Put file, filename: {}, file_path: {}".format(filename, file_path))
+                    put_file('eebook', 'images/'+filename, file_path)
+                    redis_client.set(href, 'images/'+filename, ex=86400*15)
             else:
                 print('Ops, Got error downloading {}'.format(href))
 

@@ -1,6 +1,5 @@
 elasticsearch
 ebooklib
-minio
 requests
 # greenlet
 eventlet

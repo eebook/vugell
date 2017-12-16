@@ -14,20 +14,22 @@ from eventlet.greenpool import GreenPool
 from minio import Minio
 from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
                          BucketAlreadyExists)
+from minio.policy import Policy
 from elasticsearch import Elasticsearch
 
-S3_API_PROTOCAL = os.getenv('S3_API_PROTOCAL', 'http')
-S3_API_ENDPOINT = os.getenv('S3_API_ENDPOINT', '192.168.199.121:19000')
-S3_SECRET_KEY = os.getenv('S3_SECRET_KEY', 'zUU0pffZ2Kv6E4eNMs8mz5TrN2H+kNcBFhuxS7Be')
-S3_ACCESS_KEY = os.getenv('S3_ACCESS_KEY', 'DFEEHK4IPJQAXDW8M7A9')
-REDIS_HOST = os.getenv('REDIS_HOST', '192.168.199.121')
-REDIS_PORT = os.getenv('REDIS_PORT', 6379)
+S3_API_ENDPOINT = os.getenv('S3_API_ENDPOINT')
+S3_API_PROTOCAL = os.getenv('S3_API_PROTOCAL')
+S3_ACCESS_KEY = os.getenv('S3_ACCESS_KEY')
+S3_SECRET_KEY = os.getenv('S3_SECRET_KEY')
+REGION_NAME = os.getenv('S3_REGION_NAME')
+
+REDIS_HOST = os.getenv('REDIS_HOST')
+REDIS_PORT = os.getenv('REDIS_PORT')
 redis_client = redis.Redis(REDIS_HOST, REDIS_PORT)
 minio_client = Minio(S3_API_ENDPOINT, access_key=S3_ACCESS_KEY,
-                    secret_key=S3_SECRET_KEY, secure=False)
-print("WTF is s3 api???{}".format(S3_API_ENDPOINT))
+                     secret_key=S3_SECRET_KEY, secure=True)
 
-ES_HOST_PORT = os.getenv('ES_HOST_PORT', 'http://192.168.199.121:9200')
+ES_HOST_PORT = os.getenv('ES_HOST_PORT')
 es = Elasticsearch([ES_HOST_PORT])
 API_URL = os.getenv('GRYU_API_URL', 'http://192.168.199.121:18083')
 API_VERSION = os.getenv("API_VERSION", "v1")
@@ -101,14 +103,14 @@ def make_bucket(bucket):
     except BucketAlreadyOwnedByYou as err:
         print('BucketAlreadyOwnedByYou')
     except BucketAlreadyExists as err:
-        print('Bucket already exist')
+        print('Bucket: {} already exist'.format(bucket))
     except ResponseError as err:
         raise
 
 
 def put_file(bucket, filename, file_path):
     try:
-        minio_client.fput_object(bucket, filename, file_path)
+        minio_client.fput_object(bucket, filename, file_path, metadata={"x-amz-acl": "public-read"})
         print('Filename: {} (Bucket: {}) has been successfully uploaded\n'.format(filename, bucket))
     except ResponseError as err:
         print(err)

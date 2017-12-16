@@ -15,15 +15,20 @@ _TYPE = os.getenv('URL', 'http://www.ruanyifeng.com/blog/atom.xml')
 _ID = os.getenv('ES_ID', '2017-09-24')
 CREATED_BY = os.getenv('CREATED_BY', 'knarfeh')
 EEBOOK_URL = os.getenv('URL', 'http://www.ruanyifeng.com/blog/atom.xml')
-IS_PUBLIC = str2bool(os.getenv('IS_PUBLIC'))
+IS_PUBLIC = str2bool(os.getenv('IS_PUBLIC', False))
 CONTENT_IS_MARKDOWN = str2bool(os.getenv('CONTENT_IS_MARKDOWN'))
 CONTENT_SIZE = int(os.getenv('CONTENT_SIZE', 30))
 
 EPUB_NAME_FOR_DEBUG = os.getenv('EPUB_NAME_FOR_DEBUG', None)
+# TODO: move to settings
+S3_API_ENDPOINT = os.getenv('S3_API_ENDPOINT')
+S3_API_PROTOCAL = os.getenv('S3_API_PROTOCAL')
+S3_ACCESS_KEY = os.getenv('S3_ACCESS_KEY')
+S3_SECRET_KEY = os.getenv('S3_SECRET_KEY')
 
 
 def main():
-    make_bucket('images')
+    make_bucket('eebook')
     metadata = get_metadata(_id=EEBOOK_URL)
     print('Building the book, got metadata: {}'.format(metadata))
 
@@ -48,8 +53,6 @@ def main():
     dsl_body = {
         "query": metadata['_source']['query']
     }
-    # TODO: pretty print
-    print("dsl_body???{}".format(dsl_body))
 
     # TODO: Separate by volumes
     content_result = es.search(index=_INDEX, doc_type=_TYPE+':content', body=dsl_body, size=CONTENT_SIZE, from_=0)
@@ -111,12 +114,9 @@ def main():
     make_bucket('books')
     # else:
         # Put an object 'pumaserver_debug.log' with contents from 'pumaserver_debug.log'.
-    put_file('books', epub_name, file_path)
+    put_file('eebook', 'books/'+epub_name, file_path)
     content_string = 'attachment; filename="' + epub_name + '"'
-    download_url = presigned_get_object(bucket='books',
-                                        filename=epub_name,
-                                        expire_days=1,
-                                        content_string=content_string)
+    download_url = S3_API_PROTOCAL + '://' + S3_API_ENDPOINT + '/books/' + epub_name
 
     # TODO, send book metadata to es, include book_name, created_by, book_basic_info,
     # TODO: update book href in each es doc, so we can search with book content
