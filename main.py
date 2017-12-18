@@ -3,33 +3,19 @@
 
 import os
 import uuid
+import boto3
 from ebooklib import epub
 
 from style.style import STYLE
 from plugins.picture import PicturePlugin
 from utils import (make_bucket, put_file, get_metadata, es, put_book_info_2_es,
                    presigned_get_object, create_book_resource, str2bool, md2html)
-
-_INDEX = os.getenv('ES_INDEX', 'rss')
-_TYPE = os.getenv('URL', 'http://www.ruanyifeng.com/blog/atom.xml')
-_ID = os.getenv('ES_ID', '2017-09-24')
-CREATED_BY = os.getenv('CREATED_BY', 'knarfeh')
-EEBOOK_URL = os.getenv('URL', 'http://www.ruanyifeng.com/blog/atom.xml')
-IS_PUBLIC = str2bool(os.getenv('IS_PUBLIC', False))
-CONTENT_IS_MARKDOWN = str2bool(os.getenv('CONTENT_IS_MARKDOWN'))
-CONTENT_SIZE = int(os.getenv('CONTENT_SIZE', 30))
-
-EPUB_NAME_FOR_DEBUG = os.getenv('EPUB_NAME_FOR_DEBUG', None)
-# TODO: move to settings
-S3_API_ENDPOINT = os.getenv('S3_API_ENDPOINT')
-S3_API_PROTOCAL = os.getenv('S3_API_PROTOCAL')
-S3_ACCESS_KEY = os.getenv('S3_ACCESS_KEY')
-S3_SECRET_KEY = os.getenv('S3_SECRET_KEY')
+import configs
 
 
 def main():
     make_bucket('webeebook')
-    metadata = get_metadata(_id=EEBOOK_URL)
+    metadata = get_metadata(_id=configs.EEBOOK_URL)
     print('Building the book, got metadata: {}'.format(metadata))
 
     book = epub.EpubBook()
@@ -55,7 +41,7 @@ def main():
     }
 
     # TODO: Separate by volumes
-    content_result = es.search(index=_INDEX, doc_type=_TYPE+':content', body=dsl_body, size=CONTENT_SIZE, from_=0)
+    content_result = es.search(index=configs.ES_INDEX, doc_type=configs.ES_TYPE+':content', body=dsl_body, size=configs.CONTENT_SIZE, from_=0)
     content = content_result['hits']['hits']
 
     # add chapters to the book
@@ -78,7 +64,7 @@ def main():
             chapter.content = title_html + content
         else:
             chapter.content =  title_html + author_html + item['_source']['content']
-        chapter.content = md2html(chapter.content, CONTENT_IS_MARKDOWN)
+        chapter.content = md2html(chapter.content, configs.CONTENT_IS_MARKDOWN)
         print('Add chapter: {}'.format(item['_source']['title']))
         section.append(chapter)
         book_spine.append(chapter)
@@ -106,17 +92,14 @@ def main():
     opts = {'plugins': [PicturePlugin()]}
 
     # create epub file
-    epub_name = 'ee-bookorg-' + metadata['_source']['title'] + '-' + CREATED_BY + '.epub' if EPUB_NAME_FOR_DEBUG is None else EPUB_NAME_FOR_DEBUG
+    epub_name = 'ee-bookorg-' + metadata['_source']['title'] + '-' + configs.CREATED_BY + '.epub' if configs.EPUB_NAME_FOR_DEBUG is None else configs.EPUB_NAME_FOR_DEBUG
     file_path = '/src/' + epub_name
     epub.write_epub('/src/' + epub_name, book, opts)
 
-    import boto3
-    EPUB_S3_ACCESS_KEY = os.getenv('EPUB_S3_SECRET_KEY')
-    EPUB_S3_SECRET_KEY = os.getenv('EPUB_S3_ACCESS_KEY')
     s3 = boto3.client(
         's3',
-        aws_access_key_id=EPUB_S3_ACCESS_KEY,
-        aws_secret_access_key=EPUB_S3_SECRET_KEY
+        aws_access_key_id=configs.EPUB_S3_ACCESS_KEY,
+        aws_secret_access_key=configs.EPUB_S3_SECRET_KEY
     )
     s3.upload_file(file_path, 'webeebook', 'books/'+epub_name)
     # put_file('webeebook', 'books/'+epub_name, file_path)
@@ -126,7 +109,6 @@ def main():
                                         expire_days=1,
                                         content_string=content_string)
 
-    print("download_url????{}".format(download_url))
     # TODO, send book metadata to es, include book_name, created_by, book_basic_info,
     # TODO: update book href in each es doc, so we can search with book content
     # Just copy github, project->book, code->book content
@@ -136,8 +118,8 @@ def main():
         'type': 'eebook',
         'tags': [
             {
-                'name': _INDEX,
-                'title': _INDEX,
+                'name': configs.ES_INDEX,
+                'title': configs.ES_INDEX,
                 'count': 1,
             },
             {
@@ -146,13 +128,13 @@ def main():
                 'count': 1,
             },
         ],
-        'created_by': CREATED_BY,
+        'created_by': configs.CREATED_BY,
         'created_time': 'create_time',  # TODO
         'updated_time': 'updated_time',
-        'url': EEBOOK_URL,
+        'url': configs.EEBOOK_URL,
         'download_url': download_url
     }
-    response = create_book_resource(epub_name, str(book_uuid), IS_PUBLIC)
+    response = create_book_resource(epub_name, str(book_uuid), configs.IS_PUBLIC)
     if response.status_code != 201:
         print("Got error...")
         print("status code: {}, response: {}".format(response.status_code, response.text))

@@ -5,4 +5,5 @@ requests
 eventlet
 redis
 mistune
+minio
 boto3

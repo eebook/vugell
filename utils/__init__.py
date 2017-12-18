@@ -16,18 +16,15 @@ from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
                          BucketAlreadyExists)
 from minio.policy import Policy
 from elasticsearch import Elasticsearch
+import configs
 
-S3_API_ENDPOINT = os.getenv('S3_API_ENDPOINT')
-S3_API_PROTOCAL = os.getenv('S3_API_PROTOCAL')
-S3_ACCESS_KEY = os.getenv('S3_ACCESS_KEY')
-S3_SECRET_KEY = os.getenv('S3_SECRET_KEY')
-REGION_NAME = os.getenv('S3_REGION_NAME')
-
-REDIS_HOST = os.getenv('REDIS_HOST')
-REDIS_PORT = os.getenv('REDIS_PORT')
-redis_client = redis.Redis(REDIS_HOST, REDIS_PORT)
-minio_client = Minio(S3_API_ENDPOINT, access_key=S3_ACCESS_KEY,
-                     secret_key=S3_SECRET_KEY, secure=False)
+redis_client = redis.Redis(configs.REDIS_HOST, configs.REDIS_PORT)
+minio_client = Minio(
+    configs.S3_API_ENDPOINT,
+    access_key=configs.S3_ACCESS_KEY,
+    secret_key=configs.S3_SECRET_KEY,
+    secure=False
+)
 
 ES_HOST_PORT = os.getenv('ES_HOST_PORT')
 es = Elasticsearch([ES_HOST_PORT])
