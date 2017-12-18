@@ -28,7 +28,7 @@ S3_SECRET_KEY = os.getenv('S3_SECRET_KEY')
 
 
 def main():
-    make_bucket('eebook')
+    make_bucket('webeebook')
     metadata = get_metadata(_id=EEBOOK_URL)
     print('Building the book, got metadata: {}'.format(metadata))
 
@@ -110,14 +110,23 @@ def main():
     file_path = '/src/' + epub_name
     epub.write_epub('/src/' + epub_name, book, opts)
 
-    # Make a bucket with the make_bucket API call.
-    make_bucket('books')
-    # else:
-        # Put an object 'pumaserver_debug.log' with contents from 'pumaserver_debug.log'.
-    put_file('eebook', 'books/'+epub_name, file_path)
+    import boto3
+    EPUB_S3_ACCESS_KEY = os.getenv('EPUB_S3_SECRET_KEY')
+    EPUB_S3_SECRET_KEY = os.getenv('EPUB_S3_ACCESS_KEY')
+    s3 = boto3.client(
+        's3',
+        aws_access_key_id=EPUB_S3_ACCESS_KEY,
+        aws_secret_access_key=EPUB_S3_SECRET_KEY
+    )
+    s3.upload_file(file_path, 'webeebook', 'books/'+epub_name)
+    # put_file('webeebook', 'books/'+epub_name, file_path)
     content_string = 'attachment; filename="' + epub_name + '"'
-    download_url = S3_API_PROTOCAL + '://' + S3_API_ENDPOINT + '/books/' + epub_name
+    download_url = presigned_get_object(bucket='webeebook',
+                                        filename='books/'+epub_name,
+                                        expire_days=1,
+                                        content_string=content_string)
 
+    print("download_url????{}".format(download_url))
     # TODO, send book metadata to es, include book_name, created_by, book_basic_info,
     # TODO: update book href in each es doc, so we can search with book content
     # Just copy github, project->book, code->book content

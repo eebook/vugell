@@ -5,3 +5,4 @@ requests
 eventlet
 redis
 mistune
+boto3

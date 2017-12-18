@@ -27,7 +27,7 @@ REDIS_HOST = os.getenv('REDIS_HOST')
 REDIS_PORT = os.getenv('REDIS_PORT')
 redis_client = redis.Redis(REDIS_HOST, REDIS_PORT)
 minio_client = Minio(S3_API_ENDPOINT, access_key=S3_ACCESS_KEY,
-                     secret_key=S3_SECRET_KEY, secure=True)
+                     secret_key=S3_SECRET_KEY, secure=False)
 
 ES_HOST_PORT = os.getenv('ES_HOST_PORT')
 es = Elasticsearch([ES_HOST_PORT])
