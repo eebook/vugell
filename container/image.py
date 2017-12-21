@@ -7,6 +7,7 @@ import shutil
 
 from ebooklib import epub
 from utils import hex_md5, print_in_single_line, Control, put_file, redis_client, get_file
+import configs
 
 
 class ImageContainer(object):
@@ -52,8 +53,11 @@ class ImageContainer(object):
         if os.path.isfile(self.save_path + '/' + filename):
             return
 
-        # TODO: query redis, if exist, download from minio
-        redis_cache = redis_client.get(href)
+        if configs.DEBUG_MODE is not True:
+            # TODO: query redis, if exist, download from minio
+            redis_cache = redis_client.get(href)
+        else:
+            redis_cache = None
         file_path = self.save_path + '/' + filename
         if redis_cache:
             print('Got cache of {}, filename: {}'.format(href, filename))
@@ -70,9 +74,10 @@ class ImageContainer(object):
                 with open(file_path, 'wb') as f:
                     result.raw.decode_content = True
                     shutil.copyfileobj(result.raw, f)
-                    print("Put file, filename: {}, file_path: {}".format(filename, file_path))
-                    put_file('webeebook', 'images/'+filename, file_path)
-                    redis_client.set(href, 'images/'+filename, ex=86400*15)
+                    if configs.DEBUG_MODE is not True:
+                        print("Put file, filename: {}, file_path: {}".format(filename, file_path))
+                        put_file('webeebook', 'images/'+filename, file_path)
+                        redis_client.set(href, 'images/'+filename, ex=86400*15)
             else:
                 print('Ops, Got error downloading {}'.format(href))
 

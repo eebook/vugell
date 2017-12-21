@@ -27,3 +27,4 @@ REDIS_PORT = os.getenv('REDIS_PORT')
 
 IS_PUBLIC = str2bool(os.getenv('IS_PUBLIC', False))
 CONTENT_IS_MARKDOWN = str2bool(os.getenv('CONTENT_IS_MARKDOWN'))
+DEBUG_MODE = str2bool(os.getenv('DEBUG', True))

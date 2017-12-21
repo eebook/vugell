@@ -14,7 +14,8 @@ import configs
 
 
 def main():
-    make_bucket('webeebook')
+    if configs.DEBUG_MODE is not True:
+        make_bucket('webeebook')
     metadata = get_metadata(_id=configs.EEBOOK_URL)
     print('Building the book, got metadata: {}'.format(metadata))
 
@@ -52,8 +53,11 @@ def main():
     book_spine = ['nav', c1, c2]
 
     for item in content:
-        chapter = epub.EpubHtml(title=item['_source']['title'], file_name=item['_source']['title']+'.xhtml')
-        title_html = '<h1>' + item['_source']['title'] + '</h1>'
+        # TODO, remove invalid symbol in title
+        title = item['_source'].get('title').replace('\b', '') or 'No title'
+        print('Add chapter: {}'.format(title))
+        chapter = epub.EpubHtml(title=title, file_name=title + '.xhtml')
+        title_html = '<h1>' + title + '</h1>'
         author_html = '<p>Author: ' + item['_source']['author'] + '</p>'
         if isinstance(item['_source']['content'], list):
             content = ''
@@ -65,7 +69,6 @@ def main():
         else:
             chapter.content =  title_html + author_html + item['_source']['content']
         chapter.content = md2html(chapter.content, configs.CONTENT_IS_MARKDOWN)
-        print('Add chapter: {}'.format(item['_source']['title']))
         section.append(chapter)
         book_spine.append(chapter)
         book.add_item(chapter)
@@ -96,18 +99,21 @@ def main():
     file_path = '/src/' + epub_name
     epub.write_epub('/src/' + epub_name, book, opts)
 
-    s3 = boto3.client(
-        's3',
-        aws_access_key_id=configs.EPUB_S3_ACCESS_KEY,
-        aws_secret_access_key=configs.EPUB_S3_SECRET_KEY
-    )
-    s3.upload_file(file_path, 'webeebook', 'books/'+epub_name)
-    # put_file('webeebook', 'books/'+epub_name, file_path)
-    content_string = 'attachment; filename="' + epub_name + '"'
-    download_url = presigned_get_object(bucket='webeebook',
-                                        filename='books/'+epub_name,
-                                        expire_days=1,
-                                        content_string=content_string)
+    if configs.DEBUG_MODE is not True:
+        # TODO: size restriction
+        s3 = boto3.client(
+            's3',
+            aws_access_key_id=configs.EPUB_S3_ACCESS_KEY,
+            aws_secret_access_key=configs.EPUB_S3_SECRET_KEY
+        )
+        s3.upload_file(file_path, 'webeebook', 'books/'+epub_name)
+        content_string = 'attachment; filename="' + epub_name + '"'
+        download_url = presigned_get_object(bucket='webeebook',
+                                            filename='books/'+epub_name,
+                                            expire_days=1,
+                                            content_string=content_string)
+    else:
+        download_url = 'DEBUG_MODE'
 
     # TODO, send book metadata to es, include book_name, created_by, book_basic_info,
     # TODO: update book href in each es doc, so we can search with book content
@@ -134,11 +140,13 @@ def main():
         'url': configs.EEBOOK_URL,
         'download_url': download_url
     }
-    response = create_book_resource(epub_name, str(book_uuid), configs.IS_PUBLIC)
-    if response.status_code != 201:
-        print("Got error...")
-        print("status code: {}, response: {}".format(response.status_code, response.text))
-        return
+    if configs.DEBUG_MODE is not True:
+        response = create_book_resource(epub_name, str(book_uuid), configs.IS_PUBLIC)
+        if response.status_code != 201:
+            print("Got error...")
+            print("status code: {}, response: {}".format(response.status_code, response.text))
+            return
+
     put_book_info_2_es(book_id=book_uuid, body=book_info_body)
     print('Successfully send book information to ee-book, book_id: {}, name: {}'.format(
         book_uuid, epub_name))
