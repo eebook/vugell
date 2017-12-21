@@ -4,41 +4,37 @@
 import os
 import uuid
 import boto3
+import sys
 from ebooklib import epub
 
 from style.style import STYLE
 from plugins.picture import PicturePlugin
-from utils import (make_bucket, put_file, get_metadata, es, put_book_info_2_es,
-                   presigned_get_object, create_book_resource, str2bool, md2html)
+from utils import (minio_make_bucket, put_file, get_metadata, es, put_book_info_2_es,
+                   presigned_get_object, create_book_resource, str2bool, md2html,
+                   invalid_xml_remove)
 import configs
 
-
-def main():
-    if configs.DEBUG_MODE is not True:
-        make_bucket('webeebook')
-    metadata = get_metadata(_id=configs.EEBOOK_URL)
-    print('Building the book, got metadata: {}'.format(metadata))
+def make_book_with_metadata(_metadata, _book_uuid):
+    print('Building the book, got metadata: {}'.format(_metadata))
 
     book = epub.EpubBook()
-
     # add metadata
-    book_uuid = uuid.uuid4()
-    print('Book identifier id: {}'.format(str(book_uuid)))
-    book.set_identifier(str(book_uuid))
-    book.set_title(metadata['_source']['title'])
+    print('Book identifier id: {}'.format(str(_book_uuid)))
+    book.set_identifier(str(_book_uuid))
+    book.set_title(_metadata['_source']['title'])
     book.set_language('zh')
     book.add_author('ee-book')
 
     # intro chapter
     c1 = epub.EpubHtml(title='Introduction', file_name='intro.xhtml', lang='zh')
-    c1.content = metadata['_source']['title']
+    c1.content = _metadata['_source']['title']
 
     # about chapter, TODO, get from _INDEX/_TYPE/
     c2 = epub.EpubHtml(title='About this book', file_name='about.xhtml')
     c2.content = 'About this book'
 
     dsl_body = {
-        "query": metadata['_source']['query']
+        "query": _metadata['_source']['query']
     }
 
     # TODO: Separate by volumes
@@ -53,8 +49,7 @@ def main():
     book_spine = ['nav', c1, c2]
 
     for item in content:
-        # TODO, remove invalid symbol in title
-        title = item['_source'].get('title').replace('\b', '') or 'No title'
+        title = invalid_xml_remove(item['_source'].get('title') or 'No Title')
         print('Add chapter: {}'.format(title))
         chapter = epub.EpubHtml(title=title, file_name=title + '.xhtml')
         title_html = '<h1>' + title + '</h1>'
@@ -95,9 +90,17 @@ def main():
     opts = {'plugins': [PicturePlugin()]}
 
     # create epub file
-    epub_name = 'ee-bookorg-' + metadata['_source']['title'] + '-' + configs.CREATED_BY + '.epub' if configs.EPUB_NAME_FOR_DEBUG is None else configs.EPUB_NAME_FOR_DEBUG
-    file_path = '/src/' + epub_name
+    epub_name = 'ee-bookorg-' + _metadata['_source']['title'] + '-' + configs.CREATED_BY + '.epub' if configs.EPUB_NAME_FOR_DEBUG is None else configs.EPUB_NAME_FOR_DEBUG
     epub.write_epub('/src/' + epub_name, book, opts)
+    return epub_name
+
+def main():
+    if configs.DEBUG_MODE is not True:
+        minio_make_bucket('webeebook')
+    metadata = get_metadata(_id=configs.EEBOOK_URL)
+    book_uuid = uuid.uuid4()
+    epub_name = make_book_with_metadata(metadata, book_uuid)
+    file_path = '/src/' + epub_name
 
     if configs.DEBUG_MODE is not True:
         # TODO: size restriction
