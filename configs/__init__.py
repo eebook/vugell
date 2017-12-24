@@ -8,6 +8,7 @@ def str2bool(v):
 
 ES_INDEX = os.getenv('ES_INDEX', 'rss')
 ES_TYPE = os.getenv('URL', 'http://www.ruanyifeng.com/blog/atom.xml')
+DAY_TIME_STAMP = os.getenv('DAY_TIME_STAMP', '2017-12-22')
 CREATED_BY = os.getenv('CREATED_BY', 'knarfeh')
 EEBOOK_URL = os.getenv('URL', 'http://www.ruanyifeng.com/blog/atom.xml')
 CONTENT_SIZE = int(os.getenv('CONTENT_SIZE', 30))

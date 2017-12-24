@@ -32,9 +32,20 @@ def make_book_with_metadata(_metadata, _book_uuid):
     # about chapter, TODO, get from _INDEX/_TYPE/
     c2 = epub.EpubHtml(title='About this book', file_name='about.xhtml')
     c2.content = 'About this book'
-
+    query = {
+        'bool': {
+            'must':[
+                {
+                    "terms": {
+                        "dayTimestamp": [configs.DAY_TIME_STAMP]
+                    }
+                }
+            ]
+        }
+    }
+    query = _metadata['_source'].get('query') or query
     dsl_body = {
-        "query": _metadata['_source']['query']
+        "query": query
     }
 
     # TODO: Separate by volumes

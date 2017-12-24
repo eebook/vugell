@@ -6,11 +6,12 @@ services:
     volumes:
       - .:/src
     environment:
-      - URL=https://github.com/kittencup/angular2-ama-cn/issues
-      - ES_ID=2017-12-21
+      - URL=http://www.aaronsw.com/weblog/fullarchive
+      - DAY_TIME_STAMP=2017-12-22
       - CONTENT_IS_MARKDOWN=true
       - CONTENT_SIZE=300
       - ES_HOST_PORT=http://elasticsearch:9200
+      - ES_INDEX=aaronsw
       - DEBUG=true
     env_file:
       - envs/secret.env
