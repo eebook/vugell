@@ -6,13 +6,14 @@ services:
     volumes:
       - .:/src
     environment:
-      - URL=http://www.aaronsw.com/weblog/fullarchive
-      - DAY_TIME_STAMP=2017-12-22
-      - CONTENT_IS_MARKDOWN=true
+      - URL=http://www.ruanyifeng.com/blog/computer/
+      - DAY_TIME_STAMP=2017-12-30
+      - CONTENT_IS_MARKDOWN=false
       - CONTENT_SIZE=300
       - ES_HOST_PORT=http://elasticsearch:9200
-      - ES_INDEX=aaronsw
+      - ES_INDEX=ruanyifeng
       - DEBUG=true
+      - no_proxy=true
     env_file:
       - envs/secret.env
       - envs/githubissueseebook.env

@@ -108,6 +108,8 @@ def make_book_with_metadata(_metadata, _book_uuid):
 def main():
     if configs.DEBUG_MODE is not True:
         minio_make_bucket('webeebook')
+    else:
+        print("DEBUG mode")
     metadata = get_metadata(_id=configs.EEBOOK_URL)
     book_uuid = uuid.uuid4()
     epub_name = make_book_with_metadata(metadata, book_uuid)
