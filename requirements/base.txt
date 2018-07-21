@@ -2,7 +2,7 @@ elasticsearch
 ebooklib
 requests
 # greenlet
-eventlet
+eventlet==0.21.0
 redis
 mistune
 minio

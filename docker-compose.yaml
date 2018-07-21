@@ -6,21 +6,23 @@ services:
     volumes:
       - .:/src
     environment:
-      - URL=http://www.ruanyifeng.com/blog/computer/
-      - DAY_TIME_STAMP=2017-12-30
+      - URL=https://kubernetes.io/blog/
+      - DAY_TIME_STAMP=2018-06-03
       - CONTENT_IS_MARKDOWN=false
-      - CONTENT_SIZE=300
-      - ES_HOST_PORT=http://elasticsearch:9200
-      - ES_INDEX=ruanyifeng
+      - CONTENT_SIZE=400
+      - ES_HOST_PORT=http://192.168.199.121:9200
+      - ES_INDEX=kubernetes
       - DEBUG=true
-      - no_proxy=true
+      - HTTP_PROXY=http://192.168.199.121:1087
+      - REPLACE_PICTURE=false
+      # - no_proxy=true
     env_file:
       - envs/secret.env
       - envs/githubissueseebook.env
-    networks:
-      - default
+    # networks:
+    #   - default
 
-networks:
-  default:
-    external:
-      name: githubissueseebook_githubissueseebook
+# networks:
+#   default:
+#     external:
+#       name: githubissueseebook_githubissueseebook

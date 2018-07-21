@@ -15,7 +15,6 @@ from eventlet.greenpool import GreenPool
 from minio import Minio
 from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
                          BucketAlreadyExists)
-from minio.policy import Policy
 from elasticsearch import Elasticsearch
 import configs
 

@@ -98,11 +98,13 @@ def make_book_with_metadata(_metadata, _book_uuid):
     # create spine
     book.spine = book_spine
     # epub options
-    opts = {'plugins': [PicturePlugin()]}
+    opts = {}
+    if str2bool(os.getenv("REPLACE_PICTURE", "true")):        
+        opts = {'plugins': [PicturePlugin()]}
 
     # create epub file
     epub_name = 'ee-bookorg-' + _metadata['_source']['title'] + '-' + configs.CREATED_BY + '.epub' if configs.EPUB_NAME_FOR_DEBUG is None else configs.EPUB_NAME_FOR_DEBUG
-    epub.write_epub('/src/' + epub_name, book, opts)
+    epub.write_epub('./' + epub_name, book, opts)
     return epub_name
 
 def main():
