@@ -61,6 +61,8 @@ def make_book_with_metadata(_metadata, _book_uuid):
 
     for item in content:
         title = invalid_xml_remove(item['_source'].get('title') or 'No Title')
+        if title is None or title == "":
+            title = "No Title"
         print('Add chapter: {}'.format(title))
         chapter = epub.EpubHtml(title=title, file_name=title + '.xhtml')
         title_html = '<h1>' + title + '</h1>'
