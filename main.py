@@ -10,7 +10,7 @@ from ebooklib import epub
 from style.style import STYLE
 from plugins.picture import PicturePlugin
 from utils import (minio_make_bucket, put_file, get_metadata, es, put_book_info_2_es,
-                   presigned_get_object, create_book_resource, str2bool, md2html,
+                   presigned_get_object, create_book_resource, send_book2tg, str2bool, md2html,
                    invalid_xml_remove)
 import configs
 
@@ -128,13 +128,14 @@ def main():
         )
         s3.upload_file(file_path, 'webeebook', 'books/'+epub_name)
         content_string = 'attachment; filename="' + epub_name + '"'
+        put_file('webeebook', 'books/'+epub_name, file_path)
         download_url = presigned_get_object(bucket='webeebook',
                                             filename='books/'+epub_name,
                                             expire_days=1,
                                             content_string=content_string)
     else:
         download_url = 'DEBUG_MODE'
-
+    print("Download url: {}".format(download_url))
     # TODO, send book metadata to es, include book_name, created_by, book_basic_info,
     # TODO: update book href in each es doc, so we can search with book content
     # Just copy github, project->book, code->book content
@@ -166,6 +167,11 @@ def main():
             print("Got error...")
             print("status code: {}, response: {}".format(response.status_code, response.text))
             return
+        chat_id = os.getenv('_CHAT_ID', None)
+        print("Got chat id: {}".format(chat_id))
+        if chat_id is not None:
+            send_book_response = send_book2tg(epub_name, download_url, chat_id)
+
 
     put_book_info_2_es(book_id=book_uuid, body=book_info_body)
     print('Successfully send book information to ee-book, book_id: {}, name: {}'.format(

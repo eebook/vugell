@@ -32,6 +32,7 @@ API_URL = os.getenv('GRYU_API_URL', 'http://192.168.199.121:18083')
 API_VERSION = os.getenv("API_VERSION", "v1")
 API_TOKEN = os.getenv('API_TOKEN')
 
+
 debug = False
 markdowner = mistune.Markdown()
 
@@ -139,6 +140,7 @@ def get_metadata(_id):
 
 
 def create_book_resource(_name, _id, _is_public=False):
+    print("Create book resource")
     url = "{}/{}/books/".format(API_URL, API_VERSION)
     payload = {
         "book_name": _name,
@@ -152,6 +154,19 @@ def create_book_resource(_name, _id, _is_public=False):
     r = requests.post(url, headers=headers, data=json.dumps(payload))
     return r
 
+def send_book2tg(_name, _url, _chat_id):
+    url = "{}/tg_bot/send_book".format(API_URL)
+    payload = {
+        "book_name": _name,
+        "book_url": _url,
+        "chat_id": _chat_id
+    }
+    headers = {
+        "Authorization": "Token " + API_TOKEN,
+        "content-type": "application/json"
+    }
+    r = requests.post(url, headers=headers, data=json.dumps(payload))
+    return r
 
 def put_book_info_2_es(book_id, body):
     es.create(index='eebook', doc_type='book', id=book_id, body=body)
