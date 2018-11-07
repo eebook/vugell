@@ -10,7 +10,7 @@ from ebooklib import epub
 from style.style import STYLE
 from plugins.picture import PicturePlugin
 from utils import (minio_make_bucket, put_file, get_metadata, es, put_book_info_2_es,
-                   presigned_get_object, create_book_resource, send_book2tg, str2bool, md2html,
+                   presigned_get_object, create_book_resource, send_result2tg, str2bool, md2html,
                    invalid_xml_remove)
 import configs
 
@@ -149,11 +149,6 @@ def main():
                 'title': configs.ES_INDEX,
                 'count': 1,
             },
-            {
-                'name': 'yawnwoem',
-                'title': 'yawnwoem',
-                'count': 1,
-            },
         ],
         'created_by': configs.CREATED_BY,
         'created_time': 'create_time',  # TODO
@@ -163,14 +158,14 @@ def main():
     }
     if configs.DEBUG_MODE is not True:
         response = create_book_resource(epub_name, str(book_uuid), configs.IS_PUBLIC)
+        chat_id = os.getenv('_CHAT_ID', None)
         if response.status_code != 201:
             print("Got error...")
             print("status code: {}, response: {}".format(response.status_code, response.text))
+            send_result2tg('', '', chat_id)
             return
-        chat_id = os.getenv('_CHAT_ID', None)
-        print("Got chat id: {}".format(chat_id))
         if chat_id is not None:
-            send_book_response = send_book2tg(epub_name, download_url, chat_id)
+            send_book_response = send_result2tg(epub_name, download_url, chat_id)
 
 
     put_book_info_2_es(book_id=book_uuid, body=book_info_body)

@@ -154,8 +154,8 @@ def create_book_resource(_name, _id, _is_public=False):
     r = requests.post(url, headers=headers, data=json.dumps(payload))
     return r
 
-def send_book2tg(_name, _url, _chat_id):
-    url = "{}/tg_bot/send_book".format(API_URL)
+def send_result2tg(_name, _url, _chat_id):
+    url = "{}/tg_bot/job_result".format(API_URL)
     payload = {
         "book_name": _name,
         "book_url": _url,
@@ -165,6 +165,7 @@ def send_book2tg(_name, _url, _chat_id):
         "Authorization": "Token " + API_TOKEN,
         "content-type": "application/json"
     }
+    print("Send job result")
     r = requests.post(url, headers=headers, data=json.dumps(payload))
     return r
 
