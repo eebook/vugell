@@ -135,7 +135,7 @@ def main():
                                             content_string=content_string)
     else:
         download_url = 'DEBUG_MODE'
-    print("Download url: {}".format(download_url))
+    # print("Download url: {}".format(download_url))
     # TODO, send book metadata to es, include book_name, created_by, book_basic_info,
     # TODO: update book href in each es doc, so we can search with book content
     # Just copy github, project->book, code->book content
