@@ -105,7 +105,7 @@ def make_book_with_metadata(_metadata, _book_uuid):
         opts = {'plugins': [PicturePlugin()]}
 
     # create epub file
-    epub_name = 'ee-bookorg-' + _metadata['_source']['title'] + '-' + configs.CREATED_BY + '.epub' if configs.EPUB_NAME_FOR_DEBUG is None else configs.EPUB_NAME_FOR_DEBUG
+    epub_name = 'ee-bookorg-' + _metadata['_source']['title'] + '-' + configs.DAY_TIME_STAMP + '-' + configs.CREATED_BY + '.epub' if configs.EPUB_NAME_FOR_DEBUG is None else configs.EPUB_NAME_FOR_DEBUG
     epub.write_epub('./' + epub_name, book, opts)
     return epub_name
 
